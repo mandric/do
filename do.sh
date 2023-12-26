@@ -32,11 +32,10 @@ show() {
 }
 
 lint() {
-   find . -name \*.sh -exec shellcheck -x {} \;
    local paths
    paths="$(find . -name \*.sh)"
    for path in $paths; do
-      "$path" || _fail "$path"
+      shellcheck -x "$path" || _fail "$path"
    done
 }
 
@@ -49,7 +48,6 @@ all() {
 }
 
 _listCommands() {
-   # grep -E '^\s*\w+\s*\(\)\s*{' do.sh
    grep -E '^\s*\w+\s*\(\)\s*\{' "$_SELF" | \
       sed -e '/^_.*/d' -e 's/\(.*\)().*/\1/g' | sort
 }
