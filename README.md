@@ -8,16 +8,16 @@
 - ✅ No dependencies
 - ✅ Easy to use and understand
 - ✅ Simple to extend
-- ✅ Runs on anything with a Shell
+- ✅ Tested on Alpine Ash, Ubuntu Dash and Bash
 - 🔴 Is not intended to replace a full blown build tool
- 
+
 ## Why Do.sh
 
-There are [many build-tools](https://en.wikipedia.org/wiki/List_of_build_automation_software) that are more powerful, versatile or expressive than Do.sh. If you are already using a well-known build tool, then keep on using it. Do is for use cases where the major build tools aren't the best fit. The second purpose of Do is to tame the complexity of usual Shell build scripts. Do provides a consistent reference, interface, documentation and best practices on how to write build scripts. 
+There are [many build-tools](https://en.wikipedia.org/wiki/List_of_build_automation_software) that are more powerful, versatile or expressive than Do.sh. If you are already using a well-known build tool, then keep on using it. Do is for use cases where the major build tools aren't the best fit. The second purpose of Do is to tame the complexity of usual Shell build scripts. Do provides a consistent reference, interface, documentation and best practices on how to write build scripts.
 
 > Do scripts should be recognizable and understandable even if they are customized.
 
-### Typical Use Cases 
+### Typical Use Cases
 
 Some use cases where **Do** can shine are:
 
@@ -54,16 +54,28 @@ Take also a look into the `Examples` Directory to see different use cases of **D
 
 ## Concept
 
-The concept of **Do** is simple to explain. Functions are Tasks and Tasks can be combined to new Tasks. Tasks can also accept parameters and return values.
+**Shell Functions > Shell Scripts**
 
-It is possible to define as many tasks as needed. The **Do** template for defines `build, test, deploy, all` for your convenience.
+The concept of **Do** is simple to explain. Functions are Tasks and Tasks can be
+combined to new Tasks. Tasks can also accept parameters and return values.
+
+It's better to maintain shell code this way, rather than various tasks in
+separate files. It also provides a framework for a given project's CLI using the
+native shell and exsiting command line tools, minimizing dependencies.
+
+It is possible to define as many tasks as needed. The **Do** template for
+defines `build, test, deploy, all` for your convenience.
 
 ```sh
 #!/usr/bin/env sh
-# Do - The Simplest Build Tool on Earth.
-# Documentation and examples see https://github.com/8gears/do
-
-set -e -u # -e "Automatic exit from bash shell script on error"  -u "Treat unset variables and parameters as errors"
+# shellcheck disable=SC3040,SC3043
+# See `help set` for more information
+set -o xtrace
+set -o errexit
+set -o nounset
+if set -o | grep pipefail >/dev/null; then
+   set -o pipefail
+fi
 
 build() {
    echo "I am ${FUNCNAME[0]}ing"
@@ -83,12 +95,15 @@ all() {
 }
 
 _hidden() {
-   echo "I am a hidden task and won't appear in the usage desciption because I start with an _ (underscore). If you know me you can still call me directly"
+   cat <<EOT
+I am a hidden task and won't appear in the usage desciption because I start with
+an _ (underscore). If you know me you can still call me directly"
+EOT
 }
 
 "$@" # <- execute the task
 
-[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "($(compgen -A function | grep '^[^_]' | paste -sd '|' -))"
+[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "(build|test|deploy|all)"
 ```
 
 In case no argument was provided the line `let $# || echo "Usage:\n\t./do.sh ($(compgen -A function | paste -sd '|' -))"` will print out a help message with all the available tasks in this build file.
