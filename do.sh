@@ -1,16 +1,6 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC3040,SC3043
 
-# See `help set` for more information
-set -o xtrace
-set -o errexit
-set -o nounset
-if set -o | grep pipefail >/dev/null; then
-   set -o pipefail
-fi
-
-_SELF="$(basename "$0")"
-
 all() {
    lint
    build
@@ -47,6 +37,20 @@ show() {
    echo "I am showing $1 $2 $3"
 }
 
+###############################################################################
+# Private
+###############################################################################
+
+# See `help set` for more information
+set -o xtrace
+set -o errexit
+set -o nounset
+if set -o | grep pipefail >/dev/null; then
+   set -o pipefail
+fi
+
+_SELF="$(basename "$0")"
+
 _runTests() {
    local path="$1"
    local fns
@@ -54,6 +58,7 @@ _runTests() {
    # shellcheck source=/dev/null
    . "$path"
    for fn in $fns; do
+      _log "TEST: $path:$fn"
       $fn
    done
 }
@@ -84,33 +89,34 @@ an _ (underscore). If you know me you can still call me directly.
 _fail() {
    local msg="$1"
    if [ -n "$msg" ]; then
-      echo "Failed: $msg"
+      echo "FAILED: $msg"
    else
-      echo "Failed."
+      echo "FAILED."
    fi
    return 1
 }
 
 _warn() {
   local msg="$1"
-  echo "Warning: $msg"
+  echo "WARN: $msg"
 }
 
 _log() {
   local msg="$1"
-  echo "Log: $msg"
+  echo "$msg"
 }
 
 _testCommand() {
   command -v "$1" >/dev/null
 }
 
-_printUsage() {
+_errorWithUsage() {
    local fns
    fns="$(_listPublicFunctions "$_SELF" | paste -sd '|' -)"
-   printf "\nUsage:\n\t./do.sh %s\n" "($fns)"
+   printf "\nUsage:\n\t./do.sh (%s)\n" "$fns"
+   return 1
 }
 
 "$@" # <- execute the task
 
-[ "$#" -gt 0 ] || _printUsage
+[ "$#" -gt 0 ] || _errorWithUsage
