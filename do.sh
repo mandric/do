@@ -11,15 +11,31 @@ fi
 
 _SELF="$(basename "$0")"
 
+all() {
+   lint
+   build
+   testAll
+   deploy
+   show foo bar baz
+}
+
+lint() {
+   local paths
+   paths="$(find . -name \*.sh)"
+   for path in $paths; do
+      shellcheck -x "$path" || _fail "$path"
+   done
+}
+
 build() {
    echo "I am building"
 }
 
-test() {
+testAll() {
    local paths
    paths="$(find tests -name \*_test.sh)"
    for path in $paths; do
-      "$path" || _fail "$path"
+      _runTests "$path"
    done
 }
 
@@ -31,25 +47,31 @@ show() {
    echo "I am showing $1 $2 $3"
 }
 
-lint() {
-   local paths
-   paths="$(find . -name \*.sh)"
-   for path in $paths; do
-      shellcheck -x "$path" || _fail "$path"
+_runTests() {
+   local path="$1"
+   local fns
+   fns="$(_listTestFunctions "$path")"
+   # shellcheck source=/dev/null
+   . "$path"
+   for fn in $fns; do
+      $fn
    done
 }
 
-all() {
-   lint
-   build
-   test
-   deploy
-   show foo bar baz
+_listTestFunctions() {
+   local path="$1"
+   _listPublicFunctions "$path" | grep ^test
 }
 
-_listCommands() {
-   grep -E '^\s*\w+\s*\(\)\s*\{' "$_SELF" | \
-      sed -e '/^_.*/d' -e 's/\(.*\)().*/\1/g' | sort
+_listPublicFunctions() {
+   local path="$1"
+   _listFunctions "$path" | grep -v ^_
+}
+
+_listFunctions() {
+   local path="$1"
+   grep -E '^\s*\w+\s*\(\)\s*\{' "$path" | \
+      sed -e 's/\(.*\)().*/\1/g'
 }
 
 _hidden() {
@@ -66,7 +88,7 @@ _fail() {
    else
       echo "Failed."
    fi
-   exit 1
+   return 1
 }
 
 _warn() {
@@ -83,6 +105,12 @@ _testCommand() {
   command -v "$1" >/dev/null
 }
 
+_printUsage() {
+   local fns
+   fns="$(_listPublicFunctions "$_SELF" | paste -sd '|' -)"
+   printf "\nUsage:\n\t./do.sh %s\n" "($fns)"
+}
+
 "$@" # <- execute the task
 
-[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "($(_listCommands | paste -sd '|' -))"
+[ "$#" -gt 0 ] || _printUsage
