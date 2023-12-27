@@ -10,11 +10,8 @@ all() {
 }
 
 lint() {
-   local paths
-   paths="$(find . -name \*.sh)"
-   for path in $paths; do
-      shellcheck -x "$path" || _fail "$path"
-   done
+   _lintShellcheck
+   _lintFunctionNames
 }
 
 build() {
@@ -51,6 +48,24 @@ fi
 
 _SELF="$(basename "$0")"
 
+_lintShellcheck() {
+   local paths
+   paths="$(find . -name \*.sh)"
+   for path in $paths; do
+      shellcheck -x "$path" || \
+         _fail "$path fails shellcheck linting"
+   done
+}
+
+_lintFunctionNames() {
+   local builtins
+   builtins="$(_listBuiltins)"
+   for builtin in $builtins; do
+      type "$builtin" | grep "is a shell builtin" || \
+         _fail "$builtin function name collides with a builtin"
+   done
+}
+
 _runTests() {
    local path="$1"
    local fns
@@ -77,6 +92,15 @@ _listFunctions() {
    local path="$1"
    grep -E '^\s*\w+\s*\(\)\s*\{' "$path" | \
       sed -e 's/\(.*\)().*/\1/g'
+}
+
+# TODO should be shell specific
+_listBuiltins() {
+   cat <<EOT
+alias bg break cd command continue echo eval exec exit export false fg getopts
+hash help history jobs kill let local printf pwd read readonly return set shift
+source test times trap true type ulimit umask unalias unset wait
+EOT
 }
 
 _hidden() {
