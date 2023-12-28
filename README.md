@@ -61,38 +61,50 @@ combined to new Tasks. Tasks can also accept parameters and return values.
 
 It's better to maintain shell code this way, rather than various tasks in
 separate files. It also provides a framework for a given project's CLI using the
-native shell and exsiting command line tools, minimizing dependencies.
+native shell and command line tools, minimizing dependencies.
 
 It is possible to define as many tasks as needed. The **Do** template for
 defines `build, test, deploy, all` for your convenience.
 
+<!--
+TODO add starter do.sh to examples directory or include code from examples
+directory here.
+-->
 ```sh
 #!/usr/bin/env sh
 # shellcheck disable=SC3040,SC3043
+
+build() {
+   echo "I am building"
+}
+
+test() {
+   echo "I am testing"
+}
+
+deploy() {
+   echo "I am deploying"
+}
+
+all() {
+   build
+   test
+   deploy
+}
+
+###############################################################################
+# Private
+###############################################################################
+
 # See `help set` for more information
-set -o xtrace
+# set -o xtrace # Uncomment to aid development
 set -o errexit
 set -o nounset
 if set -o | grep pipefail >/dev/null; then
    set -o pipefail
 fi
 
-build() {
-   echo "I am ${FUNCNAME[0]}ing"
-   exit 1
-}
-
-test() {
-   echo "I am ${FUNCNAME[0]}ing"
-}
-
-deploy() {
-   echo "I am ${FUNCNAME[0]}ing"
-}
-
-all() {
-   build && test && deploy
-}
+_SELF="$(basename "$0")"
 
 _hidden() {
    cat <<EOT
@@ -101,19 +113,41 @@ an _ (underscore). If you know me you can still call me directly"
 EOT
 }
 
+_listPublicFunctions() {
+   local path="$1"
+   _listFunctions "$path" | grep -v ^_
+}
+
+_listFunctions() {
+   local path="${1:-./do.sh}"
+   grep -E '^\s*\w+\s*\(\)\s*\{' "$path" | \
+      sed -e 's/\(.*\)().*/\1/g'
+}
+
+_errorWithUsage() {
+   local fns
+   fns="$(_listPublicFunctions "$_SELF" | paste -sd '|' -)"
+   printf "\nUsage:\n\t./do.sh (%s)\n" "$fns"
+   return 1
+}
+
 "$@" # <- execute the task
 
-[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "(build|test|deploy|all)"
+[ "$#" -gt 0 ] || _errorWithUsage
 ```
 
-In case no argument was provided the line `let $# || echo "Usage:\n\t./do.sh ($(compgen -A function | paste -sd '|' -))"` will print out a help message with all the available tasks in this build file.
+In case no argument was provided the last line will print out a help message
+with all the available tasks in this build file.
 
-It is important to be disciplined with **Do** and avoid adding too much complexity, which is common in the case of shell scripts. Otherwise, it would blur the simple syntax of **Do** and make it harder for others to understand the build file. In doubt [KISS](https://en.wikipedia.org/wiki/KISS_principle).
+It is important to be disciplined with **Do** and avoid adding too much complexity, which is common in the case of shell scripts. Otherwise, it would blur the simple syntax of **Do** and make it harder for others to understand the build file. When in doubt [KISS](https://en.wikipedia.org/wiki/KISS_principle).
 
 ## Convenience
 
-For your convenience you can create an alias in your `~/.zsrc|.bashrc` file
+For your convenience you can create an alias in your `~/.zshrc|.bashrc` file
 
+<!--
+TODO support aliases in autocomplete
+-->
 ```sh
 alias doo='./do.sh'
 ```

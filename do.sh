@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC3040,SC3043
 
 all() {
    lint
@@ -7,6 +6,7 @@ all() {
    testAll
    deploy
    show foo bar baz
+   todos
 }
 
 lint() {
@@ -18,6 +18,7 @@ build() {
    echo "I am building"
 }
 
+# TODO test examples
 testAll() {
    local paths
    paths="$(find tests -name \*_test.sh)"
@@ -32,6 +33,10 @@ deploy() {
 
 show() {
    echo "I am showing $1 $2 $3"
+}
+
+todos() {
+   git grep --color TODO | sed '/git grep .*/d'
 }
 
 ###############################################################################
