@@ -39,7 +39,7 @@ show() {
 ###############################################################################
 
 # See `help set` for more information
-set -o xtrace
+# set -o xtrace # Uncomment to aid development
 set -o errexit
 set -o nounset
 if set -o | grep pipefail >/dev/null; then
@@ -52,7 +52,7 @@ _lintShellcheck() {
    local paths
    paths="$(find . -name \*.sh)"
    for path in $paths; do
-      shellcheck -x "$path" || \
+      shellcheck "$path" || \
          _fail "$path fails shellcheck linting"
    done
 }
@@ -61,7 +61,7 @@ _lintFunctionNames() {
    local builtins
    builtins="$(_listBuiltins)"
    for builtin in $builtins; do
-      type "$builtin" | grep "is a shell builtin" || \
+      type "$builtin" | grep "is a shell builtin" > /dev/null || \
          _fail "$builtin function name collides with a builtin"
    done
 }
@@ -74,7 +74,7 @@ _runTests() {
    . "$path"
    for fn in $fns; do
       _log "TEST: $path:$fn"
-      $fn
+      $fn || _fail "$path:$fn"
    done
 }
 
@@ -89,7 +89,7 @@ _listPublicFunctions() {
 }
 
 _listFunctions() {
-   local path="$1"
+   local path="${1:-./do.sh}"
    grep -E '^\s*\w+\s*\(\)\s*\{' "$path" | \
       sed -e 's/\(.*\)().*/\1/g'
 }

@@ -4,7 +4,7 @@
 # Documentation and examples see https://github.com/8gears/do
 
 # See `help set` for more information
-set -o xtrace
+# set -o xtrace # Uncomment to aid development
 set -o errexit
 set -o nounset
 if set -o | grep pipefail >/dev/null; then
@@ -30,11 +30,23 @@ all() {
    build && test && deploy
 }
 
-_listCommands() {
-   grep -E '^\s*\w+\s*\(\)\s*\{' "$_SELF" | \
-      sed -e '/^_.*/d' -e 's/\(.*\)().*/\1/g' | sort
+###############################################################################
+# Private
+###############################################################################
+
+_SELF="$(basename "$0")"
+
+_listPublicFunctions() {
+   local path="${1:-./do.sh}"
+   _listFunctions "$path" | grep -v ^_
+}
+
+_listFunctions() {
+   local path="${1:-./do.sh}"
+   grep -E '^\s*\w+\s*\(\)\s*\{' "$path" | \
+      sed -e 's/\(.*\)().*/\1/g'
 }
 
 "$@" # <- execute the task
 
-[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "($(_listCommands | paste -sd '|' -))"
+[ "$#" -gt 0 ] || printf "Usage:\n\t./do.sh %s\n" "($(_listPublicFunctions "$_SELF" | paste -sd '|' -))"
