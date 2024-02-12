@@ -43,16 +43,6 @@ todos() {
 # Private
 ###############################################################################
 
-# See `help set` for more information
-# set -o xtrace # Uncomment to aid development
-set -o errexit
-set -o nounset
-if set -o | grep pipefail >/dev/null; then
-   set -o pipefail
-fi
-
-_SELF="$(basename "$0")"
-
 _lintShellcheck() {
    local paths
    paths="$(find . -name \*.sh)"
@@ -109,30 +99,30 @@ EOT
 }
 
 _hidden() {
-   printf "
+   cat <<EOT
 I am a hidden task and won't appear in the usage desciption because I start with
 an _ (underscore). If you know me you can still call me directly.
-"
+EOT
 }
 
 _fail() {
    local msg="$1"
    if [ -n "$msg" ]; then
-      echo "FAILED: $msg"
+     _log "FAILED: $msg"
    else
-      echo "FAILED."
+     _log "FAILED."
    fi
    return 1
 }
 
 _warn() {
   local msg="$1"
-  echo "WARN: $msg"
+  _log "WARN: $msg"
 }
 
 _log() {
   local msg="$1"
-  echo "$msg"
+  echo "$msg" >&2
 }
 
 _testCommand() {
@@ -146,6 +136,27 @@ _errorWithUsage() {
    return 1
 }
 
-"$@" # <- execute the task
+_SELF="$(basename "$0")"
+_QUIET=false
+
+# See `help set` for more information
+(set -o pipefail) 2>/dev/null || _warn "pipefail not supported."
+set -o errexit
+set -o nounset
 
 [ "$#" -gt 0 ] || _errorWithUsage
+
+if [ "$1" = "-q" ]; then
+  _QUIET=true
+  set +o xtrace
+  shift
+fi
+
+if [ "$1" != "_listCommands" ]; then
+  # Do not print commands when doing tab completion.
+  if [ $_QUIET = false ]; then
+    set -o xtrace
+  fi
+fi
+
+"$@" # execute the task
