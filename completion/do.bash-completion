@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# completion file for bash
+
+_dosh_doCompletion() {
+  local fns
+  local self="${1:-./do.sh}"
+  fns="$($self _listPublicFunctions "$self")"
+  COMPREPLY=($(compgen -W "$fns" -- "${COMP_WORDS[COMP_CWORD]}"))
+}
+
+# complete -F _dosh_doCompletion "${1:-./do.sh}"
+# complete -F _dosh_doCompletion "${2:-doo}"
+complete -F _dosh_doCompletion doo
